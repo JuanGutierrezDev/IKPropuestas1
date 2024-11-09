@@ -371,7 +371,7 @@ $usuarios = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
             type: 'POST',
             data: {
                 anotacion: anotacion,
-                idPropuestas: selectedProposalId // Asegúrate de definir este ID en el contexto correcto
+                idPropuestas: selectedProposalId // definir este ID en el contexto correcto
             },
             success: function(response) {
                 const result = JSON.parse(response);

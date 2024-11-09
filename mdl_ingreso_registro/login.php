@@ -1,25 +1,20 @@
 <?php 
-require '../database.php'; 
-session_start(); // Inicia la sesión
+require '../database.php';
+require './Clases/Auth.php';
+session_start();
 
 $message = '';
+$messageclass = '';
 
 if (!empty($_POST['email']) && !empty($_POST['passUsuario'])) {
-    // Limpiar y validar el email
-    $email = trim($_POST['email']);
+    $auth = new Auth($conn);
+    $result = $auth->authenticate($_POST['email'], $_POST['passUsuario']);
 
-    // Preparar la consulta SQL
-    $records = $conn->prepare('SELECT idUsuario, email, passUsuario, nombreUsuario FROM usuarios WHERE email = :email');
-    $records->bindParam(':email', $email); // Usar la variable $email ya limpiada
-    $records->execute();
-    $result = $records->fetch(PDO::FETCH_ASSOC);
-
-    // Verificar si el resultado no está vacío y validar la contraseña
-    if ($result && password_verify($_POST['passUsuario'], $result['passUsuario'])) {
+    if ($result) {
         $_SESSION['idUsuario'] = $result['idUsuario'];
-        $_SESSION['nombreUsuario'] = $result['nombreUsuario']; // Almacena el nombreUsuario en la sesión
+        $_SESSION['nombreUsuario'] = $result['nombreUsuario'];
         header('Location: inicioSesion.php'); 
-        exit; 
+        exit;
     } else {
         $message = 'Lo sentimos, sus credenciales no son correctas';
         $messageclass = 'alert alert-danger';

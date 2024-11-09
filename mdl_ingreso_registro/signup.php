@@ -1,42 +1,35 @@
-<?php require '../database.php'; 
+<?php 
+require '../database.php'; 
+require './Clases/UserRegistration.php';
 
 $message = '';
+$userRegistration = new UserRegistration($conn); // Crear instancia de la clase
 
-
-
-if (!empty($_POST['nombreUsuario']) && !empty($_POST['email']) && !empty($_POST['passUsuario'])) 
-  if ($_POST['passUsuario'] !== $_POST['Confirm_password']) {
-      $message = 'Las contraseñas no coinciden.';
-      $messageclass = 'alert alert-danger';
-  } else {
-      $sql = "INSERT INTO usuarios (nombreUsuario, email, passUsuario, tipoIdentificacion, numeroIdentificacion, telefonoUsuario, fechaNacimiento) VALUES (:nombreUsuario, :email, :passUsuario, :tipoIdentificacion, :numeroIdentificacion, :telefonoUsuario, :fechaNacimiento)";
-
-
-$stmt = $conn->prepare($sql);
-
-$stmt->bindParam(':nombreUsuario', $_POST['nombreUsuario']);
-$stmt->bindParam(':email', $_POST['email']);
-$stmt->bindParam(':tipoIdentificacion', $_POST['tipoIdentificacion']);
-$stmt->bindParam(':numeroIdentificacion', $_POST['numeroIdentificacion']);
-$stmt->bindParam(':telefonoUsuario', $_POST['telefonoUsuario']);
-$stmt->bindParam(':fechaNacimiento', $_POST['fechaNacimiento']);
-
-
-$password = password_hash($_POST['passUsuario'], PASSWORD_BCRYPT);
-$stmt->bindParam(':passUsuario', $password);
-
-
-    if ($stmt->execute()) {
-        $message = 'Se ha creado de forma satisfactoria el usuario';
-        $messageclass = 'alert alert-success';
-    } else {
-        $message = 'Lo sentimos, ha ocurrido un error, valide los datos';
+if (!empty($_POST['nombreUsuario']) && !empty($_POST['email']) && !empty($_POST['passUsuario'])) {
+    if (!$userRegistration->validatePassword($_POST['passUsuario'], $_POST['Confirm_password'])) {
+        $message = 'Las contraseñas no coinciden.';
         $messageclass = 'alert alert-danger';
-        
+    } else {
+        // Usar la clase UserRegistration para registrar el usuario
+        $success = $userRegistration->registerUser(
+            $_POST['nombreUsuario'], 
+            $_POST['email'], 
+            $_POST['passUsuario'], 
+            $_POST['tipoIdentificacion'], 
+            $_POST['numeroIdentificacion'], 
+            $_POST['telefonoUsuario'], 
+            $_POST['fechaNacimiento']
+        );
+
+        if ($success) {
+            $message = 'Se ha creado de forma satisfactoria el usuario';
+            $messageclass = 'alert alert-success';
+        } else {
+            $message = 'Lo sentimos, ha ocurrido un error, valide los datos';
+            $messageclass = 'alert alert-danger';
+        }
     }
-
 }
-
 ?>
 
 
