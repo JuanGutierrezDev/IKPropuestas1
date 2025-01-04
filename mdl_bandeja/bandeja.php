@@ -2,8 +2,16 @@
 require '../partials/validasesion.php'; 
 require '../database.php'; 
 
+// Verificar si el parámetro 'mensaje' está presente en la URL
+if (isset($_GET['mensaje'])) {
+    $mensaje = $_GET['mensaje'];
+    echo "<script>alert('$mensaje');</script>"; // Mostrar el mensaje en una alerta del navegador
+}
+
 // Obtener el ID del usuario actual
 $idUsuario = $_SESSION['idUsuario'];
+
+
 
 // Preparar y ejecutar la consulta
 $stmt = $conn->prepare("
@@ -23,7 +31,7 @@ $stmt = $conn->prepare("
     JOIN 
         clientes c ON p.idClientes = c.idClientes
     WHERE 
-        p.idUsuario = :idUsuario
+        p.idUsuario = :idUsuario 
 ");
 $stmt->execute(['idUsuario' => $idUsuario]);
 $propuestas = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -37,6 +45,9 @@ $stmtUsers->execute();
 $usuarios = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -49,7 +60,8 @@ $usuarios = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css">
     <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
-
+    
+    
 </head>
 <body>
 
@@ -102,7 +114,17 @@ $usuarios = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
                             <span class="iconosaccion material-symbols-outlined">info</span>
                         </a>
                     </td>
-                    <td><?php echo empty($propuesta['archivoPropuesta']) ? 'Pendiente' : htmlspecialchars($propuesta['archivoPropuesta']); ?></td>
+                    <td>
+                                                <?php
+                                if (!empty($propuesta['archivoPropuesta'])) {
+                                    // Obtener el nombre del archivo
+                                    $nombreArchivo = basename($propuesta['archivoPropuesta']);
+                                    echo '<a href="../mdl_bandeja/mdl_cargar_propuestas/descargar.php?archivo=' . $nombreArchivo . '" download>Descargar</a>';
+                                } else {
+                                    echo 'No hay archivo';
+                                }
+                                ?>
+                    </td>
                     <td>
                     <?php 
                         if (empty($propuesta['validaPropuesta']) || $propuesta['validaPropuesta'] === 'En espera') {
@@ -118,6 +140,7 @@ $usuarios = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
                     <span class="icono-historia" onclick="showHistory(<?php echo htmlspecialchars($propuesta['idPropuestas']); ?>)" style="cursor: pointer;">
                     <i class="fas fa-history"></i> <!-- Cambia esto por el ícono que prefieras -->
 </span>        </td>
+
                     <td>
                         <input type="checkbox" class="row-checkbox" data-id="<?php echo htmlspecialchars($propuesta['idPropuestas']); ?>" data-estado-actual="<?php echo htmlspecialchars($propuesta['validaPropuesta']); ?>" />
                     </td>
@@ -130,12 +153,27 @@ $usuarios = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
             <button class="btn btn-xs btn-primary btn-interno-1" type="button" data-bs-toggle="modal" data-bs-target="#trasladarModal">
                 <i class="fa-solid fa-paper-plane"></i> Trasladar Propuestas
             </button>
+
+
+
+
             <button class="btn btn-xs btn-outline-primary btn-interno-2" type="button" data-bs-toggle="modal" data-bs-target="#cambiarEstadoModal">
                 <i class="fa-solid fa-file-pen"></i> Cambia el estado de la propuesta
             </button>
             <button type="button" class="btn btn-xs btn-outline-primary btn-interno-3" data-bs-toggle="modal" data-bs-target="#anotacionModal" onclick="setSelectedProposalId(<?php echo htmlspecialchars($propuesta['idPropuestas']); ?>)">
             <i class="fa-solid fa-file-pen"></i> Agrega anotación a la propuesta
             </button>
+
+   <!-- Formulario para cargar el archivo -->
+
+            <form action="./mdl_cargar_propuestas/subir_archivo.php" method="POST" enctype="multipart/form-data" class="mt-3">
+                <label for="archivo" class="textocard">Suba su propuesta (PDF):</label>
+                <input type="file" name="archivo" id="archivo" class="textocard1" accept="application/pdf" required>
+                <input type="hidden" name="idPropuestas[]" id="idPropuestas" value="">
+                <button type="submit" class="btn btn-xs btn-outline-success btn-carga" name="submit">Subir archivo</button>
+            </form>
+            
+
 
 <script>
     let selectedProposalId = null;
@@ -152,10 +190,12 @@ $usuarios = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <script>
-    // Obtener el checkbox de seleccionar todos y los checkboxes de las filas
+    // Obtener el checkbox de seleccionar todos, los checkboxes de las filas y el formulario
     const checkAll = document.getElementById('checkAll');
     const rowCheckboxes = document.querySelectorAll('.row-checkbox');
     const buttonContainer = document.getElementById('buttonContainer');
+    const form = document.querySelector('form');
+    const hiddenField = document.getElementById('idPropuestas'); // Este es el campo oculto
 
     // Función para actualizar el estado de los botones
     function updateButtonVisibility() {
@@ -167,15 +207,45 @@ $usuarios = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
         }
     }
 
+    // Función para actualizar el valor del campo oculto con los ID de las propuestas seleccionadas
+    function updateSelectedProposals() {
+        const selectedProposals = [];
+        rowCheckboxes.forEach(cb => {
+            if (cb.checked) {
+                selectedProposals.push(cb.getAttribute('data-id'));
+            }
+        });
+
+        // Actualizar el campo oculto con los IDs seleccionados
+        hiddenField.value = selectedProposals.join(',');
+    }
+
     // Event listener para el checkbox de seleccionar todos
     checkAll.addEventListener('change', function() {
         rowCheckboxes.forEach(cb => cb.checked = checkAll.checked);
         updateButtonVisibility();
+        updateSelectedProposals(); // Actualiza los IDs cuando cambia la selección
     });
 
     // Event listeners para los checkboxes de las filas
-    rowCheckboxes.forEach(cb => cb.addEventListener('change', updateButtonVisibility));
+    rowCheckboxes.forEach(cb => cb.addEventListener('change', function() {
+        updateButtonVisibility();
+        updateSelectedProposals(); // Actualiza los IDs cuando se cambia una fila
+    }));
+
+    // Event listener para el envío del formulario
+    form.onsubmit = function() {
+        updateSelectedProposals(); // Asegura que los IDs seleccionados se envíen al servidor antes de enviar el formulario
+    };
 </script>
+
+
+
+
+
+
+
+
 
 <!-- Modal para Detalles -->
 <div class="modal fade" id="detailsModal" tabindex="-1" role="dialog" aria-labelledby="detailsModalLabel" aria-hidden="true">

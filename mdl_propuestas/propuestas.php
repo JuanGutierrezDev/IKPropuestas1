@@ -326,10 +326,7 @@ $propuestas = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <a style="text-decoration:none;" href="propuestas.php?idPropuestas=<?= $propuesta['idPropuestas']; ?>">
                                     <span class="iconosaccion iconomodificar material-symbols-outlined">edit</span>
                                 </a> &nbsp;
-                                <a style="text-decoration:none;" href="eliminarpropuestas.php?idPropuestas=<?= $propuesta['idPropuestas']; ?>" onclick="return confirmDelete();">
-                                    <span class="iconosaccion iconoeliminar material-symbols-outlined">delete</span>
-                                </a>
-                            </td>
+                                                          </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
